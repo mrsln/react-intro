@@ -6,6 +6,7 @@ import _     from 'lodash';
 const MIN_TOOLTIP_WIDTH  = 100;
 const MIN_TOOLTIP_HEIGHT = 50;
 const ARROW_SIZE = 9;
+const MIN_ZINDEX = 2000;
 
 export default class Intro extends React.Component {
 
@@ -25,9 +26,6 @@ export default class Intro extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      // the element's rect for a justifying
-      tooltipRect: {},
-
       // the element's rect (also for a justifying) placed in the state
       // so the render method would be purely based on the state and the props
       elementRect: {},
@@ -35,29 +33,37 @@ export default class Intro extends React.Component {
   }
 
   componentWillReceiveProps(props) {
-    if (props.element != this.props.element) {
-      // restore the styling for the previous element
-      if (this.props.element != null) {
-        this.props.element.style.zIndex = 0;
-        this.props.element.style.position = 'relative';
-      }
+    this.restoreElement(this.props.element);
+    this.highlightElement(props.element);
+  }
 
-      // make the element visible (in front of the overlay)
-      props.element.style.zIndex = 2;
-      props.element.style.position = 'relative';
+  componentDidMount() {
+    this.highlightElement(this.props.element);
+  }
 
-      this.setState({elementRect: props.element.getBoundingClientRect()});
-    }
+  componentWillUnmount() {
+    this.restoreElement(this.props.element);
   }
 
   componentDidUpdate() {
-    if (!this.props.element || !this.props.show) return null;
+    const t = React.findDOMNode(this.refs.tooltip);
+    t.style.height = 0;
+  }
 
-    const tooltip     = React.findDOMNode(this.refs.tooltip);
-    const tooltipRect = tooltip.getBoundingClientRect();
-    if (!_.isEqual(tooltipRect, this.state.tooltipRect)) {
-      this.setState({tooltipRect});
-    }
+  // make the element visible (in front of the overlay)
+  highlightElement(element) {
+    if (!element) return;
+    element.style.zIndex = MIN_ZINDEX + 2;
+    element.style.position = 'relative';
+    this.setState({elementRect: element.getBoundingClientRect()});
+  }
+
+  // restore the styling for the previous element
+  restoreElement(element) {
+    if (!element) return;
+    // FIX: it has to remember the previous values
+    element.style.zIndex = 0;
+    element.style.position = 'static';
   }
 
   render() {
@@ -72,13 +78,14 @@ export default class Intro extends React.Component {
         right:   0,
         opacity:         0.8,
         backgroundColor: 'black',
-        zIndex:  1,
+        zIndex: MIN_ZINDEX + 1,
       },
       tooltip: {
         position:  'absolute',
         top:       this.state.elementRect.bottom + ARROW_SIZE,
         left:      this.state.elementRect.left,
         minWidth:  MIN_TOOLTIP_WIDTH,
+        maxWidth:  '50%',
         minHeight: MIN_TOOLTIP_HEIGHT,
         borderRadius:    3,
         boxShadow:       '0 1px 10px rgba(0,0,0,.4)',
@@ -86,7 +93,7 @@ export default class Intro extends React.Component {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        zIndex: 2,
+        zIndex: MIN_ZINDEX + 2,
         transition: 'all .3 ease-out',
       },
       arrow: {
@@ -106,11 +113,11 @@ export default class Intro extends React.Component {
         left: this.state.elementRect.left,
         width: this.state.elementRect.width,
         height: this.state.elementRect.height,
-        bottom: this.state.elementRect.bottom,
-        right: this.state.elementRect.right,
-        position: 'absolute',
+        // bottom: this.state.elementRect.bottom,
+        // right: this.state.elementRect.right,
+        position: 'fixed',
         backgroundColor: 'rgba(255,255,255,.9)',
-        zIndex: 2,
+        zIndex: MIN_ZINDEX + 2,
       },
     };
 
